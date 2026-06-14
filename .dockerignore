@@ -1,0 +1,10 @@
+.git
+.pytest_cache
+.ruff_cache
+__pycache__
+*.pyc
+.env
+test.db
+postgres_data
+redis_data
+
