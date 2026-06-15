@@ -1,15 +1,17 @@
 services:
   api:
-    image: your-registry/paper-ingestion-service:latest
+    build: .
+    image: remotefileservice-api:latest
+    restart: always
     env_file: .env
     ports:
       - "8000:8000"
-    restart: unless-stopped
     command: sh -c "python -m app.cli.wait_for_db && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
   worker:
-    image: your-registry/paper-ingestion-service:latest
+    build: .
+    image: remotefileservice-api:latest
     env_file: .env
-    restart: unless-stopped
+    restart: always
     command: sh -c "python -m app.cli.wait_for_db && celery -A app.workers.celery_app.celery_app worker --loglevel=INFO"
 

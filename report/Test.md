@@ -103,6 +103,9 @@
 3. **测试异步任务与外部写入**
 
    - 将 `.env` 中的 `QUEUE_MODE` 改为 `celery`。重启容器：`docker compose restart`。
+
+   ![更改queue_mode](C:\Users\Jesse\Desktop\ML\report\images\更改queue_mode.png)
+
    - 再次向系统提交一篇带 `knowledge_documents` 和 `graph` 数据的全新论文 Payload。
 
    这里使用
@@ -166,25 +169,206 @@
 
    - 记录下返回的 `job_id`。
 
+   ![发送带知识和图关系的消息](C:\Users\Jesse\Desktop\ML\report\images\发送带知识和图关系的消息.png)
+
 4. **核对外部入库结果**
 
    - 调用查询接口：`GET http://localhost:8000/v1/ingestion/jobs/<job_id>`。
    - **预期结果：** 看到 `kb_status: completed` 和 `graph_status: completed`。
+
+   ![核对外部入库结果](C:\Users\Jesse\Desktop\ML\report\images\核对外部入库结果.png)
+
    - 登录你的 Dify 平台检查文档是否已入库且被切分，打开 Neo4j 浏览器执行 `MATCH (n) RETURN n LIMIT 10` 检查图谱节点是否生成。
+
+   ![图谱节点生成](C:\Users\Jesse\Desktop\ML\report\images\图谱节点生成.png)
 
 ### 第三阶段：公网部署与主线对接（生产环境）
 
-当本地能够成功将数据推送到远程的 Dify 和 Neo4j 后，就可以把这个服务部署到公网，供 Dify Workflow 随时调用了。
+#### 第一阶段：阿里云服务器准备与基础环境搭建
 
-1. **服务器部署**
-   - 在你的云服务器（需要已安装 Docker）上克隆代码。
-   - 生成生产环境的强随机秘钥（可使用 README 中的 `python -c "import secrets; print(secrets.token_urlsafe(32))"` 生成）。
-   - 拷贝 `.env.example` 到 `.env`，填入所有真实的生产配置，**务必设置** `ENABLE_PUBLIC_DOCS=false` 以保护接口。
-   - 执行 `docker compose -f docker-compose.prod.example.yml up -d` 启动服务。建议配置 Nginx 进行反向代理并挂载 HTTPS 证书。
-2. **Dify Workflow 配置**
-   - 回到你的 Dify 平台，找到论文处理 Workflow 的 HTTP 请求节点。
-   - 将 URL 改为你的公网地址：`https://你的域名或IP/v1/ingestion/jobs`。
-   - 在 Header 中配置 `Authorization: Bearer <你刚才生成的生产秘钥>`。
-3. **端到端生产跑通**
-   - 在 Dify 的起点上传一篇真实验证论文，触发整个工作流。
-   - 登录服务器使用 `docker compose logs -f api worker` 查看服务接收请求和处理入库的日志，确认全链路闭环。
+在阿里云控制台完成基础云资源配置，这是所有部署的前提。
+
+**1. 配置阿里云安全组（关键）** 买好 ECS 服务器（推荐使用 Ubuntu 22.04 或 24.04 系统）后，进入阿里云控制台的**安全组**设置，确保开放以下入方向端口：
+
+- **22**：用于 SSH 远程登录。
+- **80 和 443**：用于后续 Nginx 的 HTTP 和 HTTPS Web 服务访问。
+
+**2. 登录服务器并安装环境** 通过 SSH 连接到你的阿里云 ECS，依次执行以下命令安装 Git 和 Docker 环境：
+
+Bash
+
+```
+# 更新系统包
+sudo apt update && sudo apt upgrade -y
+
+# 安装 Git
+sudo apt install git -y
+
+# 使用官方脚本一键安装 Docker
+curl -fsSL https://get.docker.com | bash
+
+# 验证 Docker 和 Docker Compose 是否安装成功
+docker --version
+docker compose version
+```
+
+#### 第二阶段：拉取代码与生产环境配置
+
+**1. 克隆代码仓库** 将你的项目拉取到服务器上：
+
+Bash
+
+```
+git clone https://github.com/Revival1812/RemoteFileService.git
+cd RemoteFileService
+```
+
+**2. 生成生产环境强随机秘钥** 在终端运行以下 Python 单行命令生成一个 32 位的强安全秘钥，**请务必将输出的字符串复制保存好**，这将在 Dify 配置中用到：
+
+Bash
+
+```
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+**3. 配置环境变量** 拷贝环境模板文件并进行编辑：
+
+Bash
+
+```
+cp .env.example .env
+nano .env
+```
+
+在 `.env` 文件中，你需要修改以下关键信息：
+
+- 填入刚刚生成的 32 位强秘钥（通常对应 `API_AUTH_TOKEN` 或类似的鉴权字段）。
+- 填入你真实的 Neo4j 和 Dify 的连接地址与凭证。
+- **安全加固**：务必将 `ENABLE_PUBLIC_DOCS` 设置为 `false`，这样可以防止公网用户扫描和查看你的 Swagger API 文档。
+
+保存并退出（在 nano 中按 `Ctrl+O` 回车保存，`Ctrl+X` 退出）。
+
+#### 第三阶段：启动服务与 Nginx 反向代理配置
+
+**1. 启动 Docker 服务** 使用生产环境的编排文件在后台启动服务：
+
+Bash
+
+```
+docker compose -f docker-compose.prod.example.yml up -d
+```
+
+注意如果原命令不行，这里要替换为我仓库里的镜像，需要修改这个 docker-compose 文件：
+
+**第一步：打开编排文件**
+
+Bash
+
+```
+nano docker-compose.prod.example.yml
+```
+
+**第二步：修改镜像配置** 找到文件里所有的 `image: your-registry/...` 这一行（可能在 `api` 或 `worker` 服务下）。 在它的上方加上一行 `build: .`（意思是让 Docker 用当前目录的代码临时打包），并把 `image` 的名字改成一个本地专属的名字，比如：
+
+**修改前（大概是这样）：**
+
+YAML
+
+```
+services:
+  api:
+    image: your-registry/paper-ingestion-service:latest
+    restart: always
+    ...
+```
+
+**修改后（请照着改）：**
+
+YAML
+
+```
+services:
+  api:
+    build: .                                      # 👈 新增这一行，告诉Docker自己打包
+    image: remotefileservice-api:latest           # 👈 把 your-registry 改掉
+    restart: always
+    ...
+```
+
+*(注意：如果文件里还有 `worker` 节点也报同样的错，也做同样的修改，把 image 改成 `remotefileservice-worker:latest` 并加上 `build: .`)*
+
+保存并退出（按 `Ctrl+O` 回车保存，按 `Ctrl+X` 退出）。
+
+**第三步：带上 `--build` 参数重新启动** 这次我们要命令 Docker 先构建镜像再启动，执行以下命令：
+
+Bash
+
+```
+docker compose -f docker-compose.prod.example.yml up -d --build
+```
+
+接下来你就会看到 Docker 开始一层层地拉取 Python 环境并安装依赖。等它构建完成后，你的服务就会顺利地在本地跑起来了！
+
+你可以通过 `docker ps` 检查容器是否正常运行，并记下 API 容器暴露在宿主机的端口（假设为 `8000`）。
+
+**2. 安装并配置 Nginx** 为了挂载 HTTPS 证书并提供安全的公网访问，我们使用 Nginx 进行反向代理。
+
+Bash
+
+```
+sudo apt install nginx -y
+sudo nano /etc/nginx/sites-available/remotefileservice
+```
+
+写入以下基础代理配置（请将 `your_domain.com` 换成你解析到该服务器公网 IP 的域名，`8000` 换成你容器实际暴露的端口），我这里是182.92.109.116：
+
+Nginx
+
+```
+server {
+    listen 80;
+    server_name your_domain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+激活配置并重启 Nginx：
+
+Bash
+
+```
+sudo ln -s /etc/nginx/sites-available/remotefileservice /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+在apifox里进行测试有结果如下：
+
+![公网IP支持外部数据库录入](C:\Users\Jesse\Desktop\ML\report\images\公网IP支持外部数据库录入.png)
+
+#### 第四阶段：Dify Workflow 配置与端到端测试
+
+**1. 修改 Dify 工作流节点** 回到你的 Dify 平台，打开“论文处理 Workflow”的 HTTP 请求节点进行修改：
+
+- **URL**：修改为你的生产环境公网地址，例如 `https://your_domain.com/v1/ingestion/jobs`。
+- **Header**：新增或修改请求头进行鉴权，填入 `Authorization: Bearer <你刚才在服务器生成的32位生产秘钥>`。
+
+**2. 跑通全链路闭环**
+
+- 在 Dify 的工作流起点，上传一篇真实的验证论文并执行触发。
+- 回到阿里云服务器的终端，使用以下命令实时滚动查看日志：
+
+Bash
+
+```
+docker compose -f docker-compose.prod.example.yml logs -f api worker
+```
+
+如果在终端日志中看到接收到了 Dify 的请求，并且 Worker 正常完成了论文解析与 Neo4j 的入库操作，同时 Dify 端节点返回成功状态，这就说明你的服务已经在公网完美闭环了。
