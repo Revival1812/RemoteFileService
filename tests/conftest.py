@@ -11,6 +11,9 @@ os.environ.setdefault("APP_ADMIN_API_KEYS", "admin-key")
 os.environ.setdefault("QUEUE_MODE", "inline")
 os.environ.setdefault("ENABLE_DIFY_SYNC", "false")
 os.environ.setdefault("ENABLE_NEO4J_SYNC", "false")
+os.environ.setdefault("ENABLE_WORKFLOW_GATEWAY", "true")
+os.environ.setdefault("DIFY_WORKFLOW_API_KEY", "")
+os.environ.setdefault("WORKFLOW_GATEWAY_UPLOAD_DIR", "./test_uploads")
 
 from app.db.session import AsyncSessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402

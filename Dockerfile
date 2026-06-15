@@ -40,7 +40,7 @@ EXPOSE 8000
 
 # 🌟 补全点 1：修复被截断的健康检查命令
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/')" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3).read()"
 
 # 🌟 补全点 2：修复被截断的 Uvicorn 启动命令
 CMD ["sh", "-c", "python -m app.cli.wait_for_db && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

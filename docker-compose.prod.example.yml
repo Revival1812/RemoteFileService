@@ -6,6 +6,8 @@ services:
     env_file: .env
     ports:
       - "8000:8000"
+    volumes:
+      - workflow_gateway_uploads:/var/lib/paper-service/workflow-gateway
     command: sh -c "python -m app.cli.wait_for_db && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
   worker:
@@ -15,3 +17,21 @@ services:
     restart: always
     command: sh -c "python -m app.cli.wait_for_db && celery -A app.workers.celery_app.celery_app worker --loglevel=INFO"
 
+  workflow_worker:
+    build: .
+    image: remotefileservice-api:latest
+    env_file: .env
+    restart: always
+    volumes:
+      - workflow_gateway_uploads:/var/lib/paper-service/workflow-gateway
+    command: >
+      sh -c "python -m app.cli.wait_for_db &&
+      celery -A app.workers.celery_app.celery_app worker
+      --loglevel=INFO
+      --queues=$${WORKFLOW_GATEWAY_QUEUE:-workflow_gateway}
+      --concurrency=$${WORKFLOW_GATEWAY_WORKER_CONCURRENCY:-2}
+      --hostname=workflow-worker@%h"
+    stop_grace_period: 60s
+
+volumes:
+  workflow_gateway_uploads:

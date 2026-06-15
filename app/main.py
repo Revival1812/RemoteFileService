@@ -8,7 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette import status
 
-from app.api import admin, health, ingestion, papers, retrieval
+from app.api import admin, health, ingestion, papers, retrieval, workflow_jobs
 from app.core.config import get_settings
 from app.core.logging import bind_request_context, configure_logging
 
@@ -63,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(papers.duplicates_router)
     app.include_router(admin.router)
     app.include_router(retrieval.router)
+    app.include_router(workflow_jobs.router)
     return app
 
 

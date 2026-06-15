@@ -5,6 +5,7 @@ from app.models.ingestion_job import IngestionJob
 from app.models.kb_document import KbDocument
 from app.models.paper import Paper
 from app.models.paper_version import PaperVersion
+from app.models.workflow_job import WorkflowJob
 
 __all__ = [
     "Base",
@@ -14,4 +15,5 @@ __all__ = [
     "KbDocument",
     "Paper",
     "PaperVersion",
+    "WorkflowJob",
 ]

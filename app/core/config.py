@@ -45,6 +45,23 @@ class Settings(BaseSettings):
 
     enable_external_retrieval_api: bool = False
 
+    enable_workflow_gateway: bool = True
+    dify_workflow_api_base_url: str = "https://api.dify.ai/v1"
+    dify_workflow_api_key: str | None = None
+    workflow_gateway_queue: str = "workflow_gateway"
+    workflow_gateway_max_runtime_seconds: int = 1800
+    workflow_gateway_connect_timeout_seconds: float = 30.0
+    workflow_gateway_sse_read_timeout_seconds: float = 1800.0
+    workflow_gateway_reconnect_max_attempts: int = 10
+    workflow_gateway_reconnect_base_delay_seconds: float = 3.0
+    workflow_gateway_upload_dir: str = "/var/lib/paper-service/workflow-gateway"
+    workflow_gateway_max_upload_mb: int = 50
+    workflow_gateway_result_retention_days: int = 30
+    workflow_gateway_max_concurrent_jobs_per_owner: int = 3
+    workflow_gateway_store_events: bool = False
+    workflow_gateway_auto_ingest: bool = False
+    workflow_gateway_worker_concurrency: int = 2
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
