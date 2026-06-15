@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     workflow_gateway_max_runtime_seconds: int = 1800
     workflow_gateway_connect_timeout_seconds: float = 30.0
     workflow_gateway_sse_read_timeout_seconds: float = 1800.0
+    workflow_gateway_start_max_attempts: int = 3
     workflow_gateway_reconnect_max_attempts: int = 10
     workflow_gateway_reconnect_base_delay_seconds: float = 3.0
     workflow_gateway_upload_dir: str = "/var/lib/paper-service/workflow-gateway"

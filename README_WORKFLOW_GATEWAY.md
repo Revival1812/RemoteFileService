@@ -38,6 +38,7 @@ WORKFLOW_GATEWAY_QUEUE=workflow_gateway
 WORKFLOW_GATEWAY_MAX_RUNTIME_SECONDS=1800
 WORKFLOW_GATEWAY_CONNECT_TIMEOUT_SECONDS=30
 WORKFLOW_GATEWAY_SSE_READ_TIMEOUT_SECONDS=1800
+WORKFLOW_GATEWAY_START_MAX_ATTEMPTS=3
 WORKFLOW_GATEWAY_RECONNECT_MAX_ATTEMPTS=10
 WORKFLOW_GATEWAY_RECONNECT_BASE_DELAY_SECONDS=3
 WORKFLOW_GATEWAY_UPLOAD_DIR=/var/lib/paper-service/workflow-gateway
@@ -309,4 +310,3 @@ alembic downgrade 0001_initial
 - 任务长时间 `queued`：检查 `workflow_worker` 是否启动，以及是否消费 `workflow_gateway` 队列。
 - 任务 `failed` 且缺少 API Key：检查 `DIFY_WORKFLOW_API_KEY`。
 - SSE 中断：worker 会使用 Dify task/run 查询接口尝试恢复，不会在已有 `workflow_run_id` 后重复创建 run。
-

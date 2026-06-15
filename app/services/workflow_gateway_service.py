@@ -421,12 +421,33 @@ class WorkflowJobRunner:
         job.status = "starting"
         job.updated_at = utcnow()
         await self.session.commit()
+        await self._run_workflow_with_start_retries(job, provider)
+
+    async def _run_workflow_with_start_retries(self, job: WorkflowJob, provider: DifyWorkflowProvider) -> None:
+        max_attempts = max(1, self.settings.workflow_gateway_start_max_attempts)
+        last_error: Exception | None = None
         async with asyncio.timeout(self.settings.workflow_gateway_max_runtime_seconds):
-            async for event in provider.run_workflow(inputs=job.request_inputs_json, user=job.dify_user):
-                await self.apply_event(job, event)
-                await self.session.commit()
-                if job.status in FINAL_STATUSES:
-                    break
+            for attempt in range(max_attempts):
+                try:
+                    async for event in provider.run_workflow(inputs=job.request_inputs_json, user=job.dify_user):
+                        await self.apply_event(job, event)
+                        await self.session.commit()
+                        if job.status in FINAL_STATUSES:
+                            return
+                    return
+                except Exception as exc:
+                    last_error = exc
+                    if job.dify_workflow_run_id or job.dify_task_id or job.event_count > 0:
+                        raise
+                    if attempt >= max_attempts - 1:
+                        break
+                    delay = self.settings.workflow_gateway_reconnect_base_delay_seconds * (2**attempt)
+                    await asyncio.sleep(min(delay, 30) + random.uniform(0, 1))
+                    job.status = "starting"
+                    job.updated_at = utcnow()
+                    await self.session.commit()
+        if last_error is not None:
+            raise last_error
 
     async def _upload_files(self, job: WorkflowJob, provider: DifyWorkflowProvider) -> None:
         manifest = list(job.temporary_file_manifest_json or [])
@@ -549,7 +570,10 @@ class WorkflowJobRunner:
                         return
                 except Exception:
                     continue
-        await self._mark_failed(job, "workflow_runtime_error", str(exc))
+        code = "workflow_runtime_error"
+        if job.event_count == 0 and not job.dify_workflow_run_id and not job.dify_task_id:
+            code = "workflow_start_error"
+        await self._mark_failed(job, code, str(exc))
         await self.session.commit()
 
     async def _mark_failed(self, job: WorkflowJob, code: str | None, message: str | None) -> None:

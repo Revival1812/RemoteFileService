@@ -43,6 +43,37 @@ async def test_sse_workflow_started(db_session):
     assert job.dify_workflow_run_id == "run-1"
 
 
+async def test_start_run_retries_when_stream_closes_before_first_event(db_session):
+    class FlakyProvider:
+        def __init__(self) -> None:
+            self.attempts = 0
+
+        async def run_workflow(self, *, inputs, user):
+            self.attempts += 1
+            if self.attempts == 1:
+                raise RuntimeError("incomplete chunked read")
+            yield {"event": "workflow_started", "task_id": "task-1", "workflow_run_id": "run-1"}
+            yield {
+                "event": "workflow_finished",
+                "data": {"status": "succeeded", "outputs": {"paper_result": {"title": "Retried"}}},
+            }
+
+    job = await seed_workflow_job(db_session)
+    settings = Settings(
+        dify_workflow_api_key="secret",
+        workflow_gateway_start_max_attempts=2,
+        workflow_gateway_reconnect_base_delay_seconds=0,
+    )
+    runner = WorkflowJobRunner(db_session, settings)
+    provider = FlakyProvider()
+
+    await runner._start_new_run(job, provider)
+
+    assert provider.attempts == 2
+    assert job.status == "succeeded"
+    assert job.dify_task_id == "task-1"
+
+
 async def test_sse_node_started_and_retry(db_session):
     job = await seed_workflow_job(db_session)
     runner = WorkflowJobRunner(db_session, Settings())
@@ -146,4 +177,3 @@ async def test_cancel_running_job_calls_dify_stop(client, db_session, httpx_mock
         app.dependency_overrides.pop(get_settings, None)
     assert response.status_code == 200
     assert response.json()["status"] == "cancelled"
-
