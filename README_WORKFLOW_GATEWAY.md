@@ -161,7 +161,7 @@ curl -X POST http://localhost:8000/v1/workflow-jobs/upload \
   -H "Idempotency-Key: upload-demo-v1" \
   -F "paper_file=@./paper.pdf;type=application/pdf" \
   -F "analysis_id=upload-demo" \
-  -F "action=analyze_upload" \
+  -F "action=new_upload" \
   -F "user_query=请完整解析这篇论文" \
   -F "user_level=研究生或研究人员" \
   -F "force_accept=false" \

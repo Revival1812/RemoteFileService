@@ -191,7 +191,7 @@ https://你的域名/v1/workflow-jobs/arxiv
 先验证 API 活着：
 
 ```
-curl http://你的公网IP:8000/healthz
+curl http://182.92.109.116:80/healthz
 ```
 
 预期：
@@ -200,10 +200,12 @@ curl http://你的公网IP:8000/healthz
 {"status":"ok"}
 ```
 
+![屏幕截图 2026-06-15 205237](images\屏幕截图 2026-06-15 205237.png)
+
 验证数据库 ready：
 
 ```
-curl http://你的公网IP:8000/readyz
+curl http://182.92.109.116:80/readyz
 ```
 
 预期：
@@ -212,11 +214,13 @@ curl http://你的公网IP:8000/readyz
 {"status":"ready"}
 ```
 
+![屏幕截图 2026-06-15 205256](images\屏幕截图 2026-06-15 205256.png)
+
 验证 Workflow Gateway 管理状态：
 
 ```
-curl http://你的公网IP:8000/v1/admin/workflow-gateway/status \
-  -H "Authorization: Bearer <APP_ADMIN_API_KEY>"
+curl http://182.92.109.116:80/v1/admin/workflow-gateway/status \
+  -H "Authorization: Bearer E6n_0wW7Dg7N79eG3kY-tBCbqG4ksoxDWKc7DYKf7NA"
 ```
 
 重点看：
@@ -230,17 +234,19 @@ curl http://你的公网IP:8000/v1/admin/workflow-gateway/status \
 }
 ```
 
+![屏幕截图 2026-06-15 205615](images\屏幕截图 2026-06-15 205615.png)
+
 **八、Apifox 验证：arXiv 长工作流**
 Apifox 新建请求：
 
 ```
-POST http://你的公网IP:8000/v1/workflow-jobs/arxiv
+POST http://182.92.109.116:80/v1/workflow-jobs/arxiv
 ```
 
 Headers：
 
 ```
-Authorization: Bearer <APP_API_KEY>
+Authorization: Bearer 0F8y65kzFbvfVqPye3ZqFDzo3A5Kft9u4IF-gLP35gI
 Content-Type: application/json
 Idempotency-Key: arxiv-2602-11929-test-001
 ```
@@ -283,17 +289,19 @@ Body JSON：
 
 记录 `job_id`。
 
+![屏幕截图 2026-06-15 210023](images\屏幕截图 2026-06-15 210023.png)
+
 **九、Apifox 查询状态**
 新建请求：
 
 ```
-GET http://你的公网IP:8000/v1/workflow-jobs/<job_id>
+GET http://182.92.109.116:80/v1/workflow-jobs/<job_id>
 ```
 
 Headers：
 
 ```
-Authorization: Bearer <APP_API_KEY>
+Authorization: Bearer 0F8y65kzFbvfVqPye3ZqFDzo3A5Kft9u4IF-gLP35gI
 X-Owner-Id: user-001
 ```
 
@@ -321,17 +329,19 @@ cancelled
 }
 ```
 
+![屏幕截图 2026-06-15 210243](images\屏幕截图 2026-06-15 210243.png)
+
 **十、Apifox 查询结果**
 摘要结果：
 
 ```
-GET http://你的公网IP:8000/v1/workflow-jobs/<job_id>/result?view=summary
+GET http://182.92.109.116:80/v1/workflow-jobs/<job_id>/result?view=summary
 ```
 
 Headers：
 
 ```
-Authorization: Bearer <APP_API_KEY>
+Authorization: Bearer 0F8y65kzFbvfVqPye3ZqFDzo3A5Kft9u4IF-gLP35gI
 X-Owner-Id: user-001
 ```
 
@@ -341,29 +351,35 @@ X-Owner-Id: user-001
 202
 ```
 
+![屏幕截图 2026-06-15 210403](images\屏幕截图 2026-06-15 210403.png)
+
 如果成功，预期：
 
 ```
 200
 ```
 
+![屏幕截图 2026-06-15 211425](images\屏幕截图 2026-06-15 211425.png)
+
 完整结果：
 
 ```
-GET http://你的公网IP:8000/v1/workflow-jobs/<job_id>/result?view=full
+GET http://182.92.109.116:80/v1/workflow-jobs/<job_id>/result?view=full
 ```
+
+![屏幕截图 2026-06-15 211930](images\屏幕截图 2026-06-15 211930.png)
 
 **十一、Apifox 验证上传 PDF**
 新建请求：
 
 ```
-POST http://你的公网IP:8000/v1/workflow-jobs/upload
+POST http://182.92.109.116:80/v1/workflow-jobs/upload
 ```
 
 Headers：
 
 ```
-Authorization: Bearer <APP_API_KEY>
+Authorization: Bearer 0F8y65kzFbvfVqPye3ZqFDzo3A5Kft9u4IF-gLP35gI
 Idempotency-Key: upload-test-001
 ```
 
@@ -373,7 +389,7 @@ Body 选择 `form-data`：
 | ----------------- | ---- | ------------------------ |
 | `paper_file`      | File | 选择一个 PDF             |
 | `analysis_id`     | Text | `apifox-upload-test-001` |
-| `action`          | Text | `analyze_upload`         |
+| `action`          | Text | `new_upload`             |
 | `user_query`      | Text | `请完整解析这篇论文`     |
 | `user_level`      | Text | `研究生或研究人员`       |
 | `force_accept`    | Text | `false`                  |
@@ -398,17 +414,21 @@ Body 选择 `form-data`：
 202 Accepted
 ```
 
+![屏幕截图 2026-06-16 001216](images\屏幕截图 2026-06-16 001216.png)
+
+![屏幕截图 2026-06-16 001255](images\屏幕截图 2026-06-16 001255.png)
+
 **十二、取消任务验证**
 如果任务还在跑：
 
 ```
-POST http://你的公网IP:8000/v1/workflow-jobs/<job_id>/cancel
+POST http://182.92.109.116:80/v1/workflow-jobs/<job_id>/cancel
 ```
 
 Headers：
 
 ```
-Authorization: Bearer <APP_API_KEY>
+Authorization: Bearer 0F8y65kzFbvfVqPye3ZqFDzo3A5Kft9u4IF-gLP35gI
 X-Owner-Id: user-001
 ```
 
@@ -425,8 +445,8 @@ X-Owner-Id: user-001
 Apifox 或 curl：
 
 ```
-curl -X POST http://你的公网IP:8000/v1/ingestion/jobs \
-  -H "Authorization: Bearer <APP_API_KEY>" \
+curl -X POST http://182.92.109.116:80/v1/ingestion/jobs \
+  -H "Authorization: Bearer 0F8y65kzFbvfVqPye3ZqFDzo3A5Kft9u4IF-gLP35gI" \
   -H "Content-Type: application/json" \
   -d '{
     "schema_version": "1.0",
@@ -541,8 +561,8 @@ docker compose config
 docker compose run --rm api alembic upgrade head
 docker compose up -d --build
 docker compose ps
-curl http://你的公网IP:8000/healthz
-curl http://你的公网IP:8000/v1/admin/workflow-gateway/status -H "Authorization: Bearer <APP_ADMIN_API_KEY>"
+curl http://182.92.109.116:80/healthz
+curl http://182.92.109.116:80/v1/admin/workflow-gateway/status -H "Authorization: Bearer E6n_0wW7Dg7N79eG3kY-tBCbqG4ksoxDWKc7DYKf7NA"
 ```
 
 这样能最大限度避免旧服务被破坏，同时确认新增的长工作流中转服务已经工作。

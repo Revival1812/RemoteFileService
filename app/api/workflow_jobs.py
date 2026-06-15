@@ -50,7 +50,7 @@ async def submit_upload_workflow_job(
     paper_file: UploadFile = File(...),
     supplementary_images: list[UploadFile] | None = File(default=None),
     analysis_id: str = Form(default=""),
-    action: str = Form(default="analyze_upload"),
+    action: str = Form(default="new_upload"),
     user_query: str = Form(default="请完整解析这篇论文"),
     user_level: str = Form(default="研究生或研究人员"),
     force_accept: bool = Form(default=False),
@@ -145,4 +145,3 @@ async def cancel_workflow_job(
     service = WorkflowGatewayService(session, settings)
     service.ensure_enabled()
     return await service.cancel_job(job_id, client=client)
-

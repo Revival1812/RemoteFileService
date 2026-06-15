@@ -104,7 +104,7 @@ class WorkflowGatewayService:
             "supplementary_images": [],
             "arxiv_id": "",
             "analysis_id": str(form.get("analysis_id") or ""),
-            "action": str(form.get("action") or "analyze_upload"),
+            "action": str(form.get("action") or "new_upload"),
             "user_query": str(form.get("user_query") or "请完整解析这篇论文"),
             "user_level": str(form.get("user_level") or "研究生或研究人员"),
             "force_accept": _to_bool(form.get("force_accept")),

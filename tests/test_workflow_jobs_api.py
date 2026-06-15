@@ -78,7 +78,7 @@ async def test_upload_submit_returns_202_and_supplementary_images_empty(client, 
     data = {
         "owner_id": "owner-1",
         "analysis_id": "upload-1",
-        "action": "analyze_upload",
+        "action": "new_upload",
         "user_query": "解析上传论文",
         "user_level": "研究生或研究人员",
         "parser_mode": "auto",
